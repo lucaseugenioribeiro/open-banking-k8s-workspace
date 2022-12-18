@@ -1,0 +1,177 @@
+version: '3.3'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_management
+    
+    ports: 
+     - 25672:25672 # (erlang) communication between the nodes and CLI tool
+     - 15673:15672 # communication with the web management API 
+     - 5672:5672 # communication with the web management API 
+    expose:
+     - '5672'
+    volumes:
+     - ~/bank-receiver-rabbitmq:/var/lib/rabbitmq/
+    environment:
+     - RABBITMQ_DEFAULT_USER=guest
+     - RABBITMQ_DEFAULT_PASS=guest
+    restart: always
+    networks:
+      - my-networks
+
+  bank-receiver-consent-db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'bank-receiver-consent-db'
+      MYSQL_USER: 'bank-receiver-consent-db-user'
+      MYSQL_PASSWORD: 'bank-receiver-consent-db-pass'
+      MYSQL_ROOT_PASSWORD: 'bank-receiver-consent-db-pass'
+    ports:
+      - '3307:3306'
+    expose:
+      - '3307'
+    volumes:
+      - ~/bank-receiver-consent-db-volume:/var/lib/mysql
+    networks:
+      - my-networks
+
+  bank-receiver-consents-api:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DEV_PLATFORM=DOCKER
+      - RABBIT_MQ_URL=rabbitmq
+    volumes:
+      - ./:/app
+    command: npm run bank-receiver-consents-api:dev:docker
+    ports:
+      - 3334:3334
+    networks:
+      - my-networks
+    depends_on:
+      - bank-receiver-consent-db
+      - rabbitmq
+    links: 
+      - rabbitmq
+
+  #Front end do Banco Receptor
+  bank-receiver-app:
+    image: luquinhasribeiro/open-banking-workspace-main_bank-receiver-app:latest
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DEV_PLATFORM=DOCKER
+    volumes:
+      - ./:/app
+    command: npm run bank-receiver-app:dev:docker
+    ports:
+      - 4200:4200
+    networks:
+      - my-networks
+
+
+  bank-transmitter-consent-db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'bank-transmitter-consent-db'
+      MYSQL_USER: 'bank-transmitter-consent-db-user'
+      MYSQL_PASSWORD: 'bank-transmitter-consent-db-pass'
+      MYSQL_ROOT_PASSWORD: 'bank-transmitter-consent-db-pass'
+    ports:
+      - '3308:3306'
+    expose:
+      - '3308'
+    volumes:
+      - ~/bank-transmitter-consent-db-volume:/var/lib/mysql
+    networks:
+      - my-networks
+
+  bank-transmitter-consents-api:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DEV_PLATFORM=DOCKER
+    volumes:
+      - ./:/app
+    command: npm run bank-transmitter-consents-api:dev:docker
+    ports:
+      - 3333:3333
+    networks:
+      - my-networks
+    # depends_on:
+    #   - bank-transmitter-consent-db
+
+  #Front end do Banco Transmissor
+  bank-transmitter-app:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DEV_PLATFORM=DOCKER
+    volumes:
+      - ./:/app
+    command: npm run bank-transmitter-app:dev:docker
+    ports:
+      - 4201:4201
+    networks:
+      - my-networks
+
+  # Microsserviço que prover os dados para consumo
+  bank-transmitter-data-provider:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DEV_PLATFORM=DOCKER
+    volumes:
+      - ./:/app
+    command: npm run bank-transmitter-data-provider:dev:docker
+    ports:
+      - 3335:3335 
+    networks:
+      - my-networks
+
+
+  # Microsserviço reponsável por consumir os dados compartilhados.
+  #bank-receiver-consumer:
+  #  extends:
+  #    file: docker-compose.base.yml
+  #    service: nx-app-base
+  #  command: npm run bank-receiver-consumer:dev:docker
+  #  ports:
+  #    - 3336:3336
+  #  environment:
+  #    - HOSTNAMERABBIT=rabbitmq
+  #  restart: on-failure    
+  #  networks:
+  #    - my-networks
+  #  depends_on:
+  #    - rabbitmq
+  #  links: 
+  #    - rabbitmq
+
+# Names our volume
+volumes:
+  bank-transmitter-consent-db-volume:
+    driver: local
+  bank-receiver-consent-db-volume:
+    driver: local
+  rabbitmq-volume:
+    driver: local
+
+networks:
+  my-networks:
+    driver: bridge
+  my-networks-receiver:
+    driver: bridge

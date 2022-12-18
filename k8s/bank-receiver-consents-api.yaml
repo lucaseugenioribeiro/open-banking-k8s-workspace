@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: bank-receiver-consents-api
+  name: bank-receiver-consents-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: bank-receiver-consents-api
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.network/my-networks: "true"
+        io.kompose.service: bank-receiver-consents-api
+    spec:
+      containers:
+        - args:
+            - npm
+            - run
+            - bank-receiver-consents-api:dev:docker
+          env:
+            - name: RABBIT_MQ_URL
+              value: rabbitmq
+          image: luquinhasribeiro/open-banking-workspace-main_bank-receiver-consents-api:latest
+          name: bank-receiver-consents-api
+          ports:
+            - containerPort: 3334
+          resources: {}
+          volumeMounts:
+            - mountPath: /app
+              name: bank-receiver-consents-api-claim0
+      restartPolicy: Always
+      volumes:
+        - name: bank-receiver-consents-api-claim0
+          persistentVolumeClaim:
+            claimName: bank-receiver-consents-api-claim0
+status: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: bank-receiver-consents-api
+  name: bank-receiver-consents-api
+spec:
+  ports:
+    - name: "3334"
+      port: 3334
+      targetPort: 3334
+  selector:
+    io.kompose.service: bank-receiver-consents-api
+status:
+  loadBalancer: {}
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: bank-receiver-consents-api-claim0
+  name: bank-receiver-consents-api-claim0
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}

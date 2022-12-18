@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: bank-transmitter-data-provider
+  name: bank-transmitter-data-provider
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: bank-transmitter-data-provider
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.network/my-networks: "true"
+        io.kompose.service: bank-transmitter-data-provider
+    spec:
+      containers:
+        - args:
+            - npm
+            - run
+            - bank-transmitter-data-provider:dev:docker
+          env:
+            - name: DEV_PLATFORM
+              value: DOCKER
+          image: luquinhasribeiro/open-banking-workspace-main_bank-transmitter-data-provider:latest
+          name: bank-transmitter-data-provider
+          ports:
+            - containerPort: 3335
+          resources: {}
+          volumeMounts:
+            - mountPath: /app
+              name: bank-transmitter-data-provider-claim0
+      restartPolicy: Always
+      volumes:
+        - name: bank-transmitter-data-provider-claim0
+          persistentVolumeClaim:
+            claimName: bank-transmitter-data-provider-claim0
+status: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: bank-transmitter-data-provider
+  name: bank-transmitter-data-provider
+spec:
+  ports:
+    - name: "3335"
+      port: 3335
+      targetPort: 3335
+  selector:
+    io.kompose.service: bank-transmitter-data-provider
+status:
+  loadBalancer: {}
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: bank-transmitter-data-provider-claim0
+  name: bank-transmitter-data-provider-claim0
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+

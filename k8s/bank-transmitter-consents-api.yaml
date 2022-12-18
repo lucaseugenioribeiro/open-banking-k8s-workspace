@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: bank-transmitter-consents-api
+  name: bank-transmitter-consents-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: bank-transmitter-consents-api
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.network/my-networks: "true"
+        io.kompose.service: bank-transmitter-consents-api
+    spec:
+      containers:
+        - args:
+            - npm
+            - run
+            - bank-transmitter-consents-api:dev:docker
+          env:
+            - name: DEV_PLATFORM
+              value: DOCKER
+          image: luquinhasribeiro/open-banking-workspace-main_bank-transmitter-consents-api:latest
+          name: bank-transmitter-consents-api
+          ports:
+            - containerPort: 3333
+          resources: {}
+          volumeMounts:
+            - mountPath: /app
+              name: bank-transmitter-consents-api-claim0
+      restartPolicy: Always
+      volumes:
+        - name: bank-transmitter-consents-api-claim0
+          persistentVolumeClaim:
+            claimName: bank-transmitter-consents-api-claim0
+status: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: bank-transmitter-consents-api
+  name: bank-transmitter-consents-api
+spec:
+  ports:
+    - name: "3333"
+      port: 3333
+      targetPort: 3333
+  selector:
+    io.kompose.service: bank-transmitter-consents-api
+status:
+  loadBalancer: {}
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: bank-transmitter-consents-api-claim0
+  name: bank-transmitter-consents-api-claim0
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+

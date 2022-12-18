@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: bank-transmitter-consent-db
+  name: bank-transmitter-consent-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: bank-transmitter-consent-db
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.network/my-networks: "true"
+        io.kompose.service: bank-transmitter-consent-db
+    spec:
+      containers:
+        - env:
+            - name: MYSQL_DATABASE
+              value: bank-transmitter-consent-db
+            - name: MYSQL_PASSWORD
+              value: bank-transmitter-consent-db-pass
+            - name: MYSQL_ROOT_PASSWORD
+              value: bank-transmitter-consent-db-pass
+            - name: MYSQL_USER
+              value: bank-transmitter-consent-db-user
+          image: mysql:5.7
+          name: bank-transmitter-consent-db
+          ports:
+            - containerPort: 3306
+            - containerPort: 3308
+          resources: {}
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: bank-transmitter-consent-db-claim0
+      restartPolicy: Always
+      volumes:
+        - name: bank-transmitter-consent-db-claim0
+          persistentVolumeClaim:
+            claimName: bank-transmitter-consent-db-claim0
+status: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: bank-transmitter-consent-db
+  name: bank-transmitter-consent-db
+spec:
+  ports:
+    - name: "3308"
+      port: 3308
+      targetPort: 3306
+  selector:
+    io.kompose.service: bank-transmitter-consent-db
+status:
+  loadBalancer: {}
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: bank-transmitter-consent-db-claim0
+  name: bank-transmitter-consent-db-claim0
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+

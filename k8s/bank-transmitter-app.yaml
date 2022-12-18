@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: bank-transmitter-app
+  name: bank-transmitter-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: bank-transmitter-app
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.network/my-networks: "true"
+        io.kompose.service: bank-transmitter-app
+    spec:
+      containers:
+        - args:
+            - npm
+            - run
+            - bank-transmitter-app:dev:docker
+          env:
+            - name: DEV_PLATFORM
+              value: DOCKER
+          image: luquinhasribeiro/open-banking-workspace-main_bank-transmitter-app:latest
+          name: bank-transmitter-app
+          ports:
+            - containerPort: 4201
+          resources: {}
+          volumeMounts:
+            - mountPath: /app
+              name: bank-transmitter-app-claim0
+      restartPolicy: Always
+      volumes:
+        - name: bank-transmitter-app-claim0
+          persistentVolumeClaim:
+            claimName: bank-transmitter-app-claim0
+status: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: bank-transmitter-app
+  name: bank-transmitter-app
+spec:
+  ports:
+    - name: "4201"
+      port: 4201
+      targetPort: 4201
+  selector:
+    io.kompose.service: bank-transmitter-app
+status:
+  loadBalancer: {}
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: bank-transmitter-app-claim0
+  name: bank-transmitter-app-claim0
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
